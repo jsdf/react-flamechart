@@ -25,9 +25,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "serve-dist": "npx http-server dist",
     "deploy": "npm run build && git add -A && git commit -m 'Deploying' && git push",
-    "preview": "vite preview"
+    "preview": "npm run build && vite preview"
   },
   "browserslist": [
     ">0.2%",
