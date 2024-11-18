@@ -1,9 +1,8 @@
-import "./styles.css";
-import { buildTreeFromGraph, calcTreeInclusiveWeights } from "./buildTree";
-import tree from "./examples/largedata";
-import { DrawRect, Rect, Transform, TreeNode } from "./types";
-import { animated, useSpring, useSprings, config } from '@react-spring/web'
-
+import './styles.css';
+import { calcTreeInclusiveWeights } from './buildTree';
+import { generateTree } from './examples/largedata';
+import { DrawRect, Transform } from './types';
+import type { Renderer } from './FlamechartViewport';
 
 import React, {
   useEffect,
@@ -11,229 +10,41 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-} from "react";
-import Slider from "./Slider";
-import { mat3, vec2 } from "gl-matrix";
-import useWindowSize from "./useWindowSize";
-import Checkbox from "./Checkbox";
-import { treeToRects } from "./flamechartLayout";
-
-const MIN_RECT_WIDTH = 4;
-const RENDER_TEXT = true;
-
-const NODE_GAP_SIZE = 2;
-
-
-// converts a rect in unit space to a rect in viewport space by applying a pan and zoom transform
-function applyPanZoomTransformToRect(rect: Rect, transform: Transform): Rect {
-  const transformedPos = vec2.clone(rect.pos);
-  const transformedSize = vec2.clone(rect.size);
-  // offset pos by translation, then scale.
-  // effectively, translating first changes the origin which scaling will happen around.
-  // for example, zooming in on a point can be achieved by translating that point to the
-  // origin then scaling.
-  // this means that the translation is in unit (unzoomed) coordinates.
-  vec2.add(transformedPos, transformedPos, transform.translate);
-  vec2.multiply(transformedPos, transformedPos, transform.scale);
-  // scale size
-  vec2.multiply(transformedSize, transformedSize, transform.scale);
-
-  return { pos: transformedPos, size: transformedSize };
-}
-
-function CSSAnimatedDrawRects({
-  drawRects,
-  panAndZoomTransform,
-  onClick,
-}: {
-  drawRects: Array<DrawRect>;
-  panAndZoomTransform: Transform;
-  onClick: (id: string) => void;
-}) {
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const id = e.currentTarget.getAttribute("data-drawrect-id");
-
-    if (id == null) return;
-    onClick(id);
-  }, []);
-  return (
-    <>
-      {drawRects.map((drawRect) => {
-        const transformedRect = applyPanZoomTransformToRect(
-          drawRect, // DrawRect conforms to the Rect interface
-          panAndZoomTransform
-        );
-
-        return (
-          <div
-            key={drawRect.id}
-            className="Flamechart__rect Flamechart__rectCSSAnim"
-            data-drawrect-id={drawRect.id}
-            style={{
-              transform: `translate(${transformedRect.pos[0]}px, ${transformedRect.pos[1]}px)`,
-              backgroundColor: drawRect.backgroundColor ?? "transparent",
-              width: transformedRect.size[0] - NODE_GAP_SIZE,
-              height: transformedRect.size[1] - NODE_GAP_SIZE,
-            }}
-            onClick={handleClick}
-          >
-            {RENDER_TEXT && <div className="Flamechart__text">
-              {drawRect.label ?? "[no label]"}
-            </div>}
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
-
-function SpringAnimatedDrawRects({
-  drawRects,
-  panAndZoomTransform,
-  onClick,
-}: {
-  drawRects: Array<DrawRect>;
-  panAndZoomTransform: Transform;
-  onClick: (id: string) => void;
-}) {
-  const handleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const id = e.currentTarget.getAttribute("data-drawrect-id");
-
-    if (id == null) return;
-    onClick(id);
-  }, []);
-
-
-  const prevPanAndZoomTransform = useRef<Transform>(panAndZoomTransform);
-  useEffect(() => {
-    prevPanAndZoomTransform.current = panAndZoomTransform;
-  }, [panAndZoomTransform]);
-
-
-  const [springs, _api] = useSprings(
-    drawRects.length,
-    (idx: number) => {
-      const drawRect = drawRects[idx];
-      const transformedRect = applyPanZoomTransformToRect(
-        drawRect, // DrawRect conforms to the Rect interface
-        panAndZoomTransform
-      );
-
-      const prevTransformedRect = applyPanZoomTransformToRect(
-        drawRect, // DrawRect conforms to the Rect interface
-        prevPanAndZoomTransform.current
-      );
-
-      return ({
-        from: {
-          x: prevTransformedRect.pos[0],
-          y: prevTransformedRect.pos[1],
-          width: prevTransformedRect.size[0] - NODE_GAP_SIZE,
-          height: prevTransformedRect.size[1] - NODE_GAP_SIZE,
-          opacity: prevTransformedRect.size[0] < MIN_RECT_WIDTH ? 0 : 1,
-        },
-        to: {
-          config: config.gentle,
-          x: transformedRect.pos[0],
-          y: transformedRect.pos[1],
-          width: transformedRect.size[0] - NODE_GAP_SIZE,
-          height: transformedRect.size[1] - NODE_GAP_SIZE,
-          opacity: transformedRect.size[0] < MIN_RECT_WIDTH ? 0 : 1,
-        },
-      })
-    },
-    [drawRects, panAndZoomTransform, prevPanAndZoomTransform]
-  )
-
-  return (
-    <>
-      {drawRects.map((drawRect, idx) => {
-        const transformedRect = applyPanZoomTransformToRect(
-          drawRect, // DrawRect conforms to the Rect interface
-          panAndZoomTransform
-        );
-
-        const spring = springs[idx];
-
-        return (
-          <animated.div
-            key={drawRect.id}
-            className="Flamechart__rect"
-            data-drawrect-id={drawRect.id}
-            style={{
-              backgroundColor: drawRect.backgroundColor ?? "transparent",
-              ...spring,
-            }}
-            onClick={handleClick}
-          >{
-              RENDER_TEXT &&
-              <div className="Flamechart__text">
-                {drawRect.label ?? "[no label]"}
-              </div>}
-          </animated.div>
-        );
-      })}
-    </>
-  );
-}
+} from 'react';
+import Slider from './Slider';
+import { vec2 } from 'gl-matrix';
+import useWindowSize from './useWindowSize';
+import { treeToRects } from './flamechartLayout';
+import NumberInput from './NumberInput';
+import FlamechartViewport from './FlamechartViewport';
+import Select from './Select';
 
 const DIMENSIONS = {
   x: 0,
   y: 1,
 };
 
-function initPanAndZoom(drawRects: Array<DrawRect>, viewportWidth: number): Transform {
+function initPanAndZoom(
+  drawRects: Array<DrawRect>,
+  viewportWidth: number
+): Transform {
   // initial scale to fit all rects in viewport
-  const maxWidth = drawRects.reduce((acc, r) => Math.max(r.pos[0] + r.size[0], acc), 0);
-  console.log({ maxWidth, viewportWidth });
-  const scaleX = viewportWidth / maxWidth;
+  const maxWidth = drawRects.reduce(
+    (acc, r) => Math.max(r.pos[0] + r.size[0], acc),
+    0
+  );
 
-  // const scaleX = 1;
+  const scaleX = viewportWidth / maxWidth;
 
   return {
     translate: vec2.fromValues(0, 0),
-    scale: vec2.fromValues(scaleX, 1)
-  }
-}
-
-function FlamechartViewport({
-  drawRects,
-  panAndZoomTransform,
-  springAnimation,
-  viewportSize,
-  onDrawRectClick,
-}: {
-  drawRects: Array<DrawRect>;
-  panAndZoomTransform: Transform;
-  springAnimation: boolean;
-  viewportSize: { width: number, height: number };
-  onDrawRectClick: (id: string) => void
-}
-): React.ReactElement {
-  return (
-    <div
-      style={{ ...viewportSize, border: "solid 1px black" }}
-      className="Flamechart__root"
-    >
-      {
-        springAnimation ?
-          <SpringAnimatedDrawRects
-            drawRects={drawRects}
-            panAndZoomTransform={panAndZoomTransform}
-            onClick={onDrawRectClick}
-          />
-          :
-          <CSSAnimatedDrawRects
-            drawRects={drawRects}
-            panAndZoomTransform={panAndZoomTransform}
-            onClick={onDrawRectClick}
-          />
-      }
-    </div>)
+    scale: vec2.fromValues(scaleX, 1),
+  };
 }
 
 export default function App(): React.ReactElement {
+  const [treeOpts, setTreeOpts] = useState({ maxDepth: 16, fanout: 3 });
+  const tree = useMemo(() => generateTree(treeOpts), [treeOpts]);
   const drawRects = useMemo(() => {
     const drawRects: Array<DrawRect> = [];
     const startPos = vec2.create();
@@ -242,98 +53,97 @@ export default function App(): React.ReactElement {
     treeToRects(tree, startPos, tree.weightIncl, drawRects);
 
     return drawRects;
-  }, []);
+  }, [tree]);
 
-  // id can be string or number but we store it in the dom as a string
-  // so this lets us find the drawRect by an id from the dom
-  const drawRectsByIDString = useMemo(() => {
-    const byID: Map<string, DrawRect> = new Map();
-    drawRects.forEach((r) => {
-      byID.set(String(r.id), r);
-    });
-    return byID;
-  }, [drawRects]);
-
-  const windowSize = useWindowSize()
+  const windowSize = useWindowSize();
   const viewportSize = useMemo(() => {
-    return { width: windowSize.width, height: windowSize.height * 0.6 }
-  }, [windowSize])
+    return { width: windowSize.width, height: windowSize.height * 0.6 };
+  }, [windowSize]);
 
   const [selection, setSelection] = useState<DrawRect | null>(null);
 
-  const [springAnimation, setSpringAnimation] = useState(true);
+  const [renderer, setRenderer] = useState<Renderer>('vanilla-dom');
+  const [decaySpeed, setDecaySpeed] = useState(16);
 
-  const [panAndZoomTransform, setPanAndZoom] = useState<Transform>(() => initPanAndZoom(
-    drawRects,
-    viewportSize.width
-  ));
+  const [panAndZoomTransform, setPanAndZoom] = useState<Transform>(() =>
+    initPanAndZoom(drawRects, viewportSize.width)
+  );
+
+  const prevDrawRects = useRef(drawRects);
 
   const clearSelection = useCallback(() => {
     setSelection(null);
     setPanAndZoom(initPanAndZoom(drawRects, viewportSize.width));
   }, [drawRects, viewportSize]);
 
-  const handleDrawRectClick = useCallback((idString: string) => {
-    const selection = drawRectsByIDString.get(idString);
-
-    if (selection != null) {
-      setSelection(selection);
-      // calculate pan and zoom for selected rect
-      // offset of rect in unit(unzoomed) space
-      // then ratio of viewport to rect
-      const translate = vec2.clone(selection.pos);
-      // flip sign as this represents the translation to move this rect
-      // to the origin (which is the opposite of the position of this rect)
-      vec2.scale(translate, translate, -1);
-
-      // if we want to know how much to scale by for a rect's width 
-      // to be equal to the viewport width, we need to know the ratio
-      // between the rect width and viewport width.
-      // e.g if the rect's unit width takes up half the viewport, we'd need to
-      // scale by 2x for it to fill the viewport. generalized:
-      // scale factor = viewport width / rect width
-      const scale = vec2.fromValues(
-        viewportSize.width / selection.size[0],
-        1, // no scaling
-      );
-
-      setPanAndZoom({
-        translate,
-        scale
-      });
-
-    } else {
+  useEffect(() => {
+    if (prevDrawRects.current !== drawRects) {
+      console.log('drawRects changed, clearing selection');
       clearSelection();
     }
-  }, [drawRectsByIDString, viewportSize]);
+  }, [prevDrawRects, drawRects, clearSelection]);
+
+  useEffect(() => {
+    prevDrawRects.current = drawRects;
+  }, [drawRects]);
 
   return (
     <div className="App">
       <div
         style={{
           zIndex: 10,
-          position: "absolute",
+          position: 'absolute',
           top: 0,
           right: 0,
 
           backgroundColor: `#0009`,
           padding: 8,
-          color: "white"
+          color: 'white',
         }}
       >
-        <details
-          open={true}
-        >
-          <summary>
-            Controls
-          </summary>
+        <details open={true}>
+          <summary>Controls</summary>
           <div>
-            <Checkbox
-              label="use spring animation"
-              checked={springAnimation}
-              onChange={setSpringAnimation}
+            <Select
+              label="renderer"
+              items={['react-css-transition', 'react-spring', 'vanilla-dom']}
+              value={renderer.toString()}
+              onChange={(val: string) => {
+                switch (val) {
+                  case 'react-css-transition':
+                  case 'react-spring':
+                  case 'vanilla-dom':
+                    setRenderer(val as Renderer);
+                    break;
+                  default:
+                    throw new Error('unknown renderer ' + val);
+                }
+              }}
             />
           </div>
+          <NumberInput
+            value={treeOpts.maxDepth}
+            onChange={(val) => {
+              setTreeOpts((s) => ({ ...s, maxDepth: val }));
+            }}
+            label="tree max depth"
+          />
+          <NumberInput
+            value={treeOpts.fanout}
+            onChange={(val) => {
+              setTreeOpts((s) => ({ ...s, fanout: val }));
+            }}
+            label="tree fanout"
+          />
+
+          <Slider
+            label="interpolation speed (decay)"
+            min={0}
+            max={25}
+            step={0.1}
+            value={decaySpeed}
+            onChange={(val) => setDecaySpeed(val)}
+          />
           {Object.entries(DIMENSIONS).map(([dim, idx]) => (
             <Slider
               key={`pan ${dim}`}
@@ -369,18 +179,27 @@ export default function App(): React.ReactElement {
             />
           ))}
         </details>
-        selection: {selection?.node.label ?? 'none'}{
-          selection && <button onClick={() => {
-            clearSelection();
-          }}>x</button>
-        }
+        selection: {selection?.node.label ?? 'none'}
+        {selection && (
+          <button
+            onClick={() => {
+              clearSelection();
+            }}
+          >
+            x
+          </button>
+        )}
       </div>
       <FlamechartViewport
+        key={tree.id}
         drawRects={drawRects}
         panAndZoomTransform={panAndZoomTransform}
-        springAnimation={springAnimation}
+        decaySpeed={decaySpeed}
+        renderer={renderer}
         viewportSize={viewportSize}
-        onDrawRectClick={handleDrawRectClick}
+        setSelection={setSelection}
+        clearSelection={clearSelection}
+        setPanAndZoom={setPanAndZoom}
       />
       {false && <pre>{JSON.stringify(selection?.node, null, 2)}</pre>}
     </div>

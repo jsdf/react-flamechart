@@ -1,4 +1,4 @@
-import type { TreeNode } from "../types";
+import type { TreeNode } from '../types';
 
 function idToString(input: number, length: number = 10): string {
   // drop first char because more entropy is in the low bits, but we want the prefixes of the strings to be more varied
@@ -17,7 +17,7 @@ function generateNode(): TreeNode {
   };
 }
 
-function generateTree(
+export function generateTree(
   opts: { maxDepth: number; fanout: number },
   parent: TreeNode = generateNode(),
   depth = 0
@@ -35,4 +35,4 @@ function generateTree(
   return parent;
 }
 
-export default generateTree({ maxDepth: 16, fanout: 3 }) as TreeNode;
+export const largeTree = generateTree({ maxDepth: 16, fanout: 3 }) as TreeNode;
