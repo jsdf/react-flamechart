@@ -1,16 +1,16 @@
-import type { GraphEdge, GraphNode, TreeNode, ID } from "./types";
+import type {GraphEdge, GraphNode, TreeNode, NodeID} from './types';
 
 export function buildTreeFromGraph(
   nodes: Array<GraphNode>,
   edges: Array<GraphEdge>
 ): TreeNode {
-  const nodesMap = new Map<ID, TreeNode>();
+  const nodesMap = new Map<NodeID, TreeNode>();
   nodes.forEach((node) => {
     if (nodesMap.has(node.id)) {
-      throw new Error("duplicate node id " + node.id);
+      throw new Error('duplicate node id ' + node.id);
     }
 
-    const { weight, ...rest } = node;
+    const {weight, ...rest} = node;
     nodesMap.set(node.id, {
       ...rest,
       weightIncl: 0,
@@ -21,12 +21,12 @@ export function buildTreeFromGraph(
 
   const nodesWithParents = new Set();
   edges.forEach(([from, to]) => {
-    if (from == null) throw new Error("from is null");
-    if (to == null) throw new Error("to is null");
+    if (from == null) throw new Error('from is null');
+    if (to == null) throw new Error('to is null');
     const fromNode = nodesMap.get(from);
     const toNode = nodesMap.get(to);
-    if (fromNode == null) throw new Error("fromNode is null");
-    if (toNode == null) throw new Error("toNode is null");
+    if (fromNode == null) throw new Error('fromNode is null');
+    if (toNode == null) throw new Error('toNode is null');
     fromNode.children.push(toNode);
     nodesWithParents.add(to);
   });
@@ -37,7 +37,7 @@ export function buildTreeFromGraph(
 
   if (possibleRoots.length === 0) {
     throw new Error(
-      "no node without a parent found. this is graph, not a tree"
+      'no node without a parent found. this is graph, not a tree'
     );
   } else if (possibleRoots.length === 1) {
     return possibleRoots[0];
