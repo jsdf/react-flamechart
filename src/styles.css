@@ -34,6 +34,7 @@
   padding-top: 2px;
   padding-left: 4px;
   text-wrap-mode: nowrap;
+  color: #000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -42,7 +43,7 @@
   }
 
   .Flamechart__text {
-    color: #fff;
+    color: #000;
   }
   
   body {

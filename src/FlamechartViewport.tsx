@@ -148,6 +148,7 @@ class VanillaDOMDrawRectsRenderer {
       FPSCounter.startFrame();
       this.updateInterpolation(deltaTime);
       FPSCounter.endFrame();
+      FPSCounter.reportElementsCount(this.elements.size);
       requestAnimationFrame(rafLoop);
     };
 

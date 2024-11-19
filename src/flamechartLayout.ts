@@ -8,7 +8,7 @@ function colorScale(value: number) {
   // squash the color range so that single digit percentages still
   // get some color
   // https://www.desmos.com/calculator/ljsmsbirpo
-  return Math.max(Math.pow(value, 0.4), 0.2);
+  return Math.max(Math.pow(value, 0.4));
 }
 
 // convert tree to drawRects in unit space
@@ -35,7 +35,10 @@ export function treeToRects(
     id: treeNode.id,
     node: treeNode,
     label: treeNode.label + ` (${(normalizedOfTotal * 100).toFixed(2)}%)`,
-    backgroundColor: `rgba(255,0,0,${colorScale(normalizedOfTotal)})`,
+    // backgroundColor: `rgba(255,0,0,${colorScale(normalizedOfTotal)})`,
+    backgroundColor: `oklab(from red 0.8 ${normalizedOfTotal - 0.1} ${
+      normalizedOfTotal / 2
+    }  `,
     pos,
     size,
   };
