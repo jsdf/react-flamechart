@@ -1,11 +1,13 @@
-import { DrawRect, NodeID, Rect, Transform, TreeNode } from './types';
-import { animated, useSpring, useSprings, config } from '@react-spring/web';
-import { vec2 } from 'gl-matrix';
+import {DrawRect, NodeID, Rect, Transform, TreeNode} from './types';
+import {animated, useSpring, useSprings, config} from '@react-spring/web';
+import {vec2} from 'gl-matrix';
+import FPSCounter from './FPSCounter';
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, {useEffect, useRef, useCallback, useMemo} from 'react';
 
 const MIN_RECT_WIDTH = 2;
 const RENDER_TEXT = true;
+const MIN_TEXT_WIDTH = 8;
 
 const NODE_GAP_SIZE = 2;
 
@@ -23,7 +25,7 @@ function applyPanZoomTransformToRect(rect: Rect, transform: Transform): Rect {
   // scale size
   vec2.multiply(transformedSize, transformedSize, transform.scale);
 
-  return { pos: transformedPos, size: transformedSize };
+  return {pos: transformedPos, size: transformedSize};
 }
 
 // exponential decay interpolation
@@ -59,7 +61,7 @@ class VanillaDOMDrawRectsRenderer {
   private currentRectStates: Map<NodeID, Rect> = new Map();
   // the target state of interpolation
   private targetRectStates: Map<NodeID, Rect> = new Map();
-  private viewport: Rect = { pos: vec2.create(), size: vec2.create() };
+  private viewport: Rect = {pos: vec2.create(), size: vec2.create()};
   private running = false;
   private lastTime = 0;
   private decaySpeed = 16; // how quickly we converge on targetRectState values, range 0 to 25 (higher is faster)
@@ -73,7 +75,7 @@ class VanillaDOMDrawRectsRenderer {
   transitionToNextState(
     drawRects: Array<DrawRect>,
     panAndZoomTransform: Transform,
-    viewportSize: { width: number; height: number },
+    viewportSize: {width: number; height: number},
     decaySpeed: number
   ) {
     console.log('transitionToNextState', drawRects.length);
@@ -86,10 +88,6 @@ class VanillaDOMDrawRectsRenderer {
     // don't worry about setting properties, we'll do that in the next step
 
     drawRects.forEach((drawRect) => {
-      if (!this.elements.has(drawRect.id)) {
-        this.createElement(drawRect);
-      }
-
       if (!ids.has(drawRect.id)) {
         // remove element
         const el = this.elements.get(drawRect.id);
@@ -134,10 +132,6 @@ class VanillaDOMDrawRectsRenderer {
       this.updateElementProperties(drawRect, currentRectState);
     });
 
-    if (this.elements.size !== this.currentRectStates.size) {
-      throw new Error('Element count mismatch');
-    }
-
     if (!this.running) {
       this.createRenderLoop();
     }
@@ -151,7 +145,9 @@ class VanillaDOMDrawRectsRenderer {
       if (!this.running) return;
       const deltaTime = (time - this.lastTime) / 1000;
       this.lastTime = time;
+      FPSCounter.startFrame();
       this.updateInterpolation(deltaTime);
+      FPSCounter.endFrame();
       requestAnimationFrame(rafLoop);
     };
 
@@ -234,18 +230,23 @@ class VanillaDOMDrawRectsRenderer {
 
   // update DOM element properties with current values for an animation frame
   updateElementProperties(drawRect: DrawRect, transformedRect: Rect) {
+    const inViewport = rectIntersectsRect(transformedRect, this.viewport);
+
+    if (!inViewport || transformedRect.size[0] < MIN_RECT_WIDTH) {
+      // delete element if it's out of view
+      const el = this.elements.get(drawRect.id);
+      if (el != null) {
+        el.remove();
+        this.elements.delete(drawRect.id);
+      }
+      return;
+    }
+    if (!this.elements.has(drawRect.id)) {
+      this.createElement(drawRect);
+    }
     const el = this.elements.get(drawRect.id);
     if (el == null) {
       throw new Error('Element not found for drawRect: ' + drawRect.id);
-    }
-
-    if (
-      transformedRect.size[0] >= MIN_RECT_WIDTH &&
-      rectIntersectsRect(transformedRect, this.viewport)
-    ) {
-      el.style.visibility = 'visible';
-    } else {
-      el.style.visibility = 'hidden';
     }
 
     el.style.transform = `translate(${transformedRect.pos[0]}px, ${transformedRect.pos[1]}px)`;
@@ -258,6 +259,12 @@ class VanillaDOMDrawRectsRenderer {
       0,
       transformedRect.size[1] - NODE_GAP_SIZE
     )}px`;
+
+    if (transformedRect.size[0] >= MIN_TEXT_WIDTH) {
+      (el.children[0] as HTMLDivElement).style.display = 'block';
+    } else {
+      (el.children[0] as HTMLDivElement).style.display = 'none';
+    }
   }
 }
 
@@ -271,7 +278,7 @@ function VanillaDOMDrawRects({
 }: {
   drawRects: Array<DrawRect>;
   panAndZoomTransform: Transform;
-  viewportSize: { width: number; height: number };
+  viewportSize: {width: number; height: number};
   decaySpeed: number;
   rootRef: React.RefObject<HTMLDivElement>;
   onClick: (id: string) => void;
@@ -470,7 +477,16 @@ function SpringAnimatedDrawRects({
     </>
   );
 }
-
+export function getMouseEventPos(
+  event: {
+    clientX: number;
+    clientY: number;
+  },
+  viewport: HTMLDivElement
+): vec2 {
+  var rect = viewport.getBoundingClientRect();
+  return vec2.fromValues(event.clientX - rect.left, event.clientY - rect.top);
+}
 export type Renderer = 'react-spring' | 'react-css-transition' | 'vanilla-dom';
 export default function FlamechartViewport({
   drawRects,
@@ -485,7 +501,7 @@ export default function FlamechartViewport({
   drawRects: Array<DrawRect>;
   panAndZoomTransform: Transform;
   renderer: Renderer;
-  viewportSize: { width: number; height: number };
+  viewportSize: {width: number; height: number};
   decaySpeed: number;
   setSelection: (selection: DrawRect | null) => void;
   clearSelection: () => void;
@@ -576,7 +592,7 @@ export default function FlamechartViewport({
 
   return (
     <div
-      style={{ ...viewportSize, border: 'solid 1px black' }}
+      style={{...viewportSize, border: 'solid 1px black'}}
       className="Flamechart__root"
       ref={rootRef}
     >

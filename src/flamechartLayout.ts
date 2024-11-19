@@ -1,5 +1,5 @@
-import { vec2 } from 'gl-matrix';
-import { DrawRect, TreeNode } from './types';
+import {vec2} from 'gl-matrix';
+import {DrawRect, TreeNode} from './types';
 
 const NODE_HEIGHT = 20;
 const NODE_WIDTH_SCALE = 2;
@@ -8,7 +8,7 @@ function colorScale(value: number) {
   // squash the color range so that single digit percentages still
   // get some color
   // https://www.desmos.com/calculator/ljsmsbirpo
-  return Math.pow(value, 0.4);
+  return Math.max(Math.pow(value, 0.4), 0.2);
 }
 
 // convert tree to drawRects in unit space
@@ -31,12 +31,11 @@ export function treeToRects(
   );
   const normalizedOfTotal = treeNode.weightIncl / total;
 
-  const colorIntensity = Math.floor((1 - colorScale(normalizedOfTotal)) * 255);
   const rect: DrawRect = {
     id: treeNode.id,
     node: treeNode,
     label: treeNode.label + ` (${(normalizedOfTotal * 100).toFixed(2)}%)`,
-    backgroundColor: `rgb(255,${colorIntensity},${colorIntensity})`,
+    backgroundColor: `rgba(255,0,0,${colorScale(normalizedOfTotal)})`,
     pos,
     size,
   };

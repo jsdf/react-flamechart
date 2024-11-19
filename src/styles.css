@@ -24,6 +24,7 @@
 }
 
 .Flamechart__text {
+  cursor: default;
   contain: strict;
   width: 100px;
   height: 20px; /* keep in sync with NODE_HEIGHT */
@@ -34,3 +35,19 @@
   padding-left: 4px;
   text-wrap-mode: nowrap;
 }
+
+@media (prefers-color-scheme: dark) {
+  .Flamechart__rect {
+    border-color: #fff;
+  }
+
+  .Flamechart__text {
+    color: #fff;
+  }
+  
+  body {
+    background-color: #111;
+    color: #fff;
+  }
+}
+

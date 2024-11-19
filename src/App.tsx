@@ -1,20 +1,14 @@
 import './styles.css';
-import { calcTreeInclusiveWeights } from './buildTree';
-import { generateTree } from './examples/largedata';
-import { DrawRect, Transform } from './types';
-import type { Renderer } from './FlamechartViewport';
+import {calcTreeInclusiveWeights} from './buildTree';
+import {generateTree} from './examples/largedata';
+import {DrawRect, Transform} from './types';
+import type {Renderer} from './FlamechartViewport';
 
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
 import Slider from './Slider';
-import { vec2 } from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 import useWindowSize from './useWindowSize';
-import { treeToRects } from './flamechartLayout';
+import {treeToRects} from './flamechartLayout';
 import NumberInput from './NumberInput';
 import FlamechartViewport from './FlamechartViewport';
 import Select from './Select';
@@ -43,7 +37,7 @@ function initPanAndZoom(
 }
 
 export default function App(): React.ReactElement {
-  const [treeOpts, setTreeOpts] = useState({ maxDepth: 16, fanout: 3 });
+  const [treeOpts, setTreeOpts] = useState({maxDepth: 16, fanout: 3});
   const tree = useMemo(() => generateTree(treeOpts), [treeOpts]);
   const drawRects = useMemo(() => {
     const drawRects: Array<DrawRect> = [];
@@ -57,7 +51,7 @@ export default function App(): React.ReactElement {
 
   const windowSize = useWindowSize();
   const viewportSize = useMemo(() => {
-    return { width: windowSize.width, height: windowSize.height * 0.6 };
+    return {width: windowSize.width, height: windowSize.height * 0.6};
   }, [windowSize]);
 
   const [selection, setSelection] = useState<DrawRect | null>(null);
@@ -124,14 +118,14 @@ export default function App(): React.ReactElement {
           <NumberInput
             value={treeOpts.maxDepth}
             onChange={(val) => {
-              setTreeOpts((s) => ({ ...s, maxDepth: val }));
+              setTreeOpts((s) => ({...s, maxDepth: val}));
             }}
             label="tree max depth"
           />
           <NumberInput
             value={treeOpts.fanout}
             onChange={(val) => {
-              setTreeOpts((s) => ({ ...s, fanout: val }));
+              setTreeOpts((s) => ({...s, fanout: val}));
             }}
             label="tree fanout"
           />
@@ -156,7 +150,7 @@ export default function App(): React.ReactElement {
                 setPanAndZoom((s) => {
                   const updated = vec2.clone(s.translate);
                   updated[idx] = val;
-                  return { ...s, translate: updated };
+                  return {...s, translate: updated};
                 })
               }
             />
@@ -173,22 +167,25 @@ export default function App(): React.ReactElement {
                 setPanAndZoom((s) => {
                   const updated = vec2.clone(s.scale);
                   updated[idx] = val;
-                  return { ...s, scale: updated };
+                  return {...s, scale: updated};
                 })
               }
             />
           ))}
         </details>
-        selection: {selection?.node.label ?? 'none'}
-        {selection && (
-          <button
-            onClick={() => {
-              clearSelection();
-            }}
-          >
-            x
-          </button>
-        )}
+        <div>rects: {drawRects.length}</div>
+        <div>
+          selection: {selection?.node.label ?? 'none'}{' '}
+          {selection && (
+            <button
+              onClick={() => {
+                clearSelection();
+              }}
+            >
+              x
+            </button>
+          )}
+        </div>
       </div>
       <FlamechartViewport
         key={tree.id}
