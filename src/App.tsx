@@ -57,7 +57,7 @@ export default function App(): React.ReactElement {
   const [selection, setSelection] = useState<DrawRect | null>(null);
 
   const [renderer, setRenderer] = useState<Renderer>('vanilla-dom');
-  const [decaySpeed, setDecaySpeed] = useState(16);
+  const [decaySpeed, setDecaySpeed] = useState(7);
 
   const [panAndZoomTransform, setPanAndZoom] = useState<Transform>(() =>
     initPanAndZoom(drawRects, viewportSize.width)
